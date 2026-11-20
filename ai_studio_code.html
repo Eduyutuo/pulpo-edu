@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Explainer Pulpo 9:16 — 1080x1920 @ 60fps</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #040b16;
+      color: #e6f2ff;
+      font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 16px;
+    }
+    .stage-wrap {
+      position: relative;
+      height: min(82vh, 960px);
+      aspect-ratio: 9 / 16;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.12);
+      background: #071324;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .controls {
+      width: min(560px, 95vw);
+      background: rgba(15, 41, 74, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      backdrop-filter: blur(10px);
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button {
+      background: #00F5D4;
+      color: #071324;
+      border: none;
+      border-radius: 9px;
+      padding: 9px 14px;
+      font-family: inherit;
+      font-weight: 900;
+      font-size: 13px;
+      cursor: pointer;
+      transition: transform 0.12s ease, opacity 0.15s ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+    button.secondary {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+    }
+    button.record {
+      background: #FF2E7E;
+      color: #ffffff;
+      margin-left: auto;
+    }
+    input[type="range"] {
+      flex: 1;
+      accent-color: #00F5D4;
+      cursor: pointer;
+    }
+    .timecode {
+      font-variant-numeric: tabular-nums;
+      font-size: 13px;
+      font-weight: 700;
+      min-width: 96px;
+      text-align: right;
+      color: #9dc3e6;
+    }
+    .status {
+      font-size: 12px;
+      color: #8eb4d9;
+      min-height: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="stage-wrap">
+    <canvas id="stage" width="1080" height="1920"></canvas>
+  </div>
+
+  <div class="controls">
+    <div class="row">
+      <button id="playBtn">▶ Reproducir</button>
+      <button id="restartBtn" class="secondary">↺ Reiniciar</button>
+      <button id="exportBtn" class="record">● Exportar Vídeo (20s · 60fps)</button>
+    </div>
+    <div class="row">
+      <input id="scrubber" type="range" min="0" max="20" step="0.01" value="0" />
+      <div class="timecode" id="timecode">00.00s / 20.00s</div>
+    </div>
+    <div class="status" id="status">Formato nativo: 1080×1920 px (9:16) · 60 fps</div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('stage');
+    const ctx = canvas.getContext('2d');
+    const playBtn = document.getElementById('playBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const scrubber = document.getElementById('scrubber');
+    const timecodeEl = document.getElementById('timecode');
+    const statusEl = document.getElementById('status');
+
+    const W = 1080;
+    const H = 1920;
+    const DURATION = 20.0;
+
+    const COLORS = {
+      bgTop: '#071324',
+      bgBot: '#0F294A',
+      branchial: '#00F5D4',
+      systemic: '#FF2E7E',
+      bodyFill: 'rgba(110, 215, 255, 0.13)',
+      bodyStroke: 'rgba(135, 232, 255, 0.58)',
+      white: '#FFFFFF'
+    };
+
+    // Math helpers
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const smoothstep = (e0, e1, x) => {
+      const t = clamp((x - e0) / (e1 - e0), 0, 1);
+      return t * t * (3 - 2 * t);
+    };
+    const easeOutCubic = x => 1 - Math.pow(1 - clamp(x, 0, 1), 3);
+    const easeInOutCubic = x => {
+      const t = clamp(x, 0, 1);
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    };
+    const easeOutBack = x => {
+      const t = clamp(x, 0, 1);
+      const c1 = 1.70158;
+      const c3 = c1 + 1;
+      return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+    };
+
+    function cubicBezier(p0, p1, p2, p3, t) {
+      const u = 1 - t;
+      const tt = t * t;
+      const uu = u * u;
+      const uuu = uu * u;
+      const ttt = tt * t;
+      return {
+        x: uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x,
+        y: uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y
+      };
+    }
+
+    // Deterministic pseudo-random generator
+    function mulberry32(a) {
+      return function () {
+        let t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    const rand = mulberry32(42069);
+
+    // Pre-generate plankton particles with depth-of-field layers
+    const plankton = Array.from({ length: 85 }, () => {
+      const depth = rand(); // 0 = far/blurry, 1 = near/crisp
+      return {
+        x: rand() * W,
+        y: rand() * H,
+        r: lerp(1.5, 7.5, depth),
+        depth,
+        speedY: lerp(-12, -42, depth),
+        driftAmp: lerp(6, 26, rand()),
+        phase: rand() * Math.PI * 2,
+        alpha: lerp(0.08, 0.36, depth) * (depth < 0.25 ? 0.65 : 1),
+        tint: rand() > 0.78 ? '#00F5D4' : '#9ed8ff'
+      };
+    });
+
+    // Pre-generate hydrodynamic streamlines for [15s - 18.2s]
+    const streamlines = Array.from({ length: 34 }, () => ({
+      x: (rand() - 0.5) * 960,
+      yOffset: rand() * H,
+      len: lerp(140, 420, rand()),
+      speed: lerp(1900, 3200, rand()),
+      width: lerp(2, 5.5, rand()),
+      alpha: lerp(0.18, 0.55, rand()),
+      cyan: rand() > 0.6
+    }));
+
+    // Pre-generate jet propulsion bubbles
+    const jetBubbles = Array.from({ length: 42 }, () => ({
+      offsetX: (rand() - 0.5) * 48,
+      delay: rand() * 3.0,
+      speed: lerp(650, 1250, rand()),
+      r: lerp(3, 13, rand()),
+      wobble: rand() * Math.PI * 2
+    }));
+
+    // Heartbeat waveform (lub-dub)
+    function getHeartBeat(t, bpm, intensity = 1) {
+      if (intensity <= 0.001) return 0;
+      const period = 60 / bpm;
+      const phase = (t % period) / period;
+      // Primary systole spike + secondary diastolic bounce
+      const beat1 = Math.exp(-Math.pow((phase - 0.14) / 0.065, 2));
+      const beat2 = 0.52 * Math.exp(-Math.pow((phase - 0.30) / 0.075, 2));
+      return clamp((beat1 + beat2) * intensity, 0, 1.25);
+    }
+
+    // Draw stylized heart shape
+    function drawHeartIcon(x, y, size, color, glow, pulse, frozen = false) {
+      ctx.save();
+      ctx.translate(x, y);
+      const s = size * (1 + pulse * 0.26);
+      ctx.scale(s, s);
+
+      ctx.shadowColor = color;
+      ctx.shadowBlur = frozen ? 10 : (22 + pulse * 26);
+
+      ctx.beginPath();
+      ctx.moveTo(0, 0.35);
+      ctx.bezierCurveTo(-0.55, -0.05, -0.58, -0.52, -0.24, -0.52);
+      ctx.bezierCurveTo(-0.08, -0.52, 0, -0.36, 0, -0.28);
+      ctx.bezierCurveTo(0, -0.36, 0.08, -0.52, 0.24, -0.52);
+      ctx.bezierCurveTo(0.58, -0.52, 0.55, -0.05, 0, 0.35);
+      ctx.closePath();
+
+      ctx.fillStyle = frozen ? 'rgba(255, 46, 126, 0.45)' : color;
+      ctx.fill();
+
+      // Inner bright core
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.arc(-0.14, -0.22, 0.11, 0, Math.PI * 2);
+      ctx.fillStyle = frozen ? 'rgba(255,255,255,0.25)' : 'rgba(255, 255, 255, 0.65)';
+      ctx.fill();
+
+      // Pulse ring wave
+      if (!frozen && pulse > 0.15) {
+        const ringScale = 1.15 + (1 - pulse) * 0.9;
+        ctx.beginPath();
+        ctx.arc(0, -0.08, 0.48 * ringScale, 0, Math.PI * 2);
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = pulse * 0.42;
+        ctx.lineWidth = 0.06;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Draw feathery gill structure
+    function drawGill(side, glowAlpha) {
+      ctx.save();
+      ctx.scale(side, 1);
+      ctx.strokeStyle = `rgba(0, 245, 212, ${0.22 + glowAlpha * 0.58})`;
+      ctx.fillStyle = `rgba(0, 245, 212, ${0.06 + glowAlpha * 0.22})`;
+      ctx.shadowColor = COLORS.branchial;
+      ctx.shadowBlur = 12 + glowAlpha * 24;
+      ctx.lineWidth = 2.6;
+
+      // Main gill spine
+      ctx.beginPath();
+      ctx.moveTo(86, -150);
+      ctx.quadraticCurveTo(132, -205, 96, -278);
+      ctx.stroke();
+
+      // Feathery lamellae
+      for (let i = 0; i < 6; i++) {
+        const k = i / 5;
+        const bx = lerp(94, 108, k);
+        const by = lerp(-165, -262, k);
+        const len = lerp(30, 18, Math.abs(k - 0.45));
+        ctx.beginPath();
+        ctx.ellipse(bx + len * 0.35, by - 4, len * 0.5, 5.5, -0.45, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Draw organic tapered tentacle ribbon
+    function drawTentacle(index, total, t, swimFactor, systemicActive, systemicPulse, xrayAlpha) {
+      const norm = (index / (total - 1)) * 2 - 1; // -1 .. +1
+      const baseX = norm * 62;
+      const baseY = 38 + Math.abs(norm) * 8;
+      const len = lerp(330, 250, Math.abs(norm)) * lerp(1, 1.18, swimFactor);
+      const baseWidth = lerp(24, 16, Math.abs(norm));
+
+      const pts = [];
+      const steps = 18;
+      const waveSpeed = lerp(2.6, 8.5, swimFactor);
+      const spreadFactor = lerp(1.0, 0.38, swimFactor); // Streamlined when jet-swimming
+
+      for (let i = 0; i <= steps; i++) {
+        const s = i / steps;
+        const angleSpread = norm * 0.62 * spreadFactor;
+        const wave = Math.sin(s * 4.5 - t * waveSpeed + index * 0.9) * (18 + 34 * s) * lerp(1, 0.55, swimFactor);
+        const curl = Math.sin(s * 2.2 + index) * 14 * s * spreadFactor;
+        const px = baseX + Math.sin(angleSpread) * len * s + wave + curl;
+        const py = baseY + Math.cos(angleSpread * 0.6) * len * s;
+        pts.push({ x: px, y: py });
+      }
+
+      // Compute polygon ribbon edges
+      const leftPts = [];
+      const rightPts = [];
+      for (let i = 0; i <= steps; i++) {
+        const s = i / steps;
+        const pPrev = pts[Math.max(0, i - 1)];
+        const pNext = pts[Math.min(steps, i + 1)];
+        const dx = pNext.x - pPrev.x;
+        const dy = pNext.y - pPrev.y;
+        const d = Math.hypot(dx, dy) || 1;
+        const nx = -dy / d;
+        const ny = dx / d;
+        const w = baseWidth * Math.pow(1 - s * 0.92, 1.15);
+        leftPts.push({ x: pts[i].x + nx * w, y: pts[i].y + ny * w });
+        rightPts.push({ x: pts[i].x - nx * w, y: pts[i].y - ny * w });
+      }
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(leftPts[0].x, leftPts[0].y);
+      for (let i = 1; i < leftPts.length; i++) ctx.lineTo(leftPts[i].x, leftPts[i].y);
+      for (let i = rightPts.length - 1; i >= 0; i--) ctx.lineTo(rightPts[i].x, rightPts[i].y);
+      ctx.closePath();
+
+      ctx.fillStyle = COLORS.bodyFill;
+      ctx.fill();
+      ctx.strokeStyle = COLORS.bodyStroke;
+      ctx.lineWidth = 2.2;
+      ctx.shadowColor = 'rgba(0, 245, 212, 0.35)';
+      ctx.shadowBlur = 10;
+      ctx.stroke();
+
+      // Internal blood vessel in tentacle (glows in systemic phase)
+      if (xrayAlpha > 0.05) {
+        ctx.shadowBlur = systemicActive ? 14 : 4;
+        ctx.shadowColor = COLORS.systemic;
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length - 2; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.strokeStyle = `rgba(255, 46, 126, ${xrayAlpha * (0.18 + systemicActive * 0.55)})`;
+        ctx.lineWidth = 2.2 + systemicActive * 1.2;
+        ctx.stroke();
+
+        // Luminous blood particles flowing down tentacle
+        if (systemicActive > 0.1) {
+          for (let p = 0; p < 2; p++) {
+            const prog = ((t * 0.95 + index * 0.17 + p * 0.5) % 1);
+            const idx = Math.floor(prog * (pts.length - 3));
+            const frac = prog * (pts.length - 3) - idx;
+            const px = lerp(pts[idx].x, pts[idx + 1].x, frac);
+            const py = lerp(pts[idx].y, pts[idx + 1].y, frac);
+            ctx.beginPath();
+            ctx.arc(px, py, 3.8 + systemicPulse * 1.6, 0, Math.PI * 2);
+            ctx.fillStyle = COLORS.systemic;
+            ctx.globalAlpha = systemicActive * (1 - prog * 0.65);
+            ctx.fill();
+          }
+        }
+      }
+      ctx.restore();
+    }
+
+    // Draw the complete X-ray bioluminescent octopus
+    function drawOctopus(t, state) {
+      const {
+        xrayAlpha,
+        branchialFocus,
+        systemicFocus,
+        heartFrozen,
+        swimFactor,
+        branchialPulse,
+        systemicPulse
+      } = state;
+
+      // Subtle breathing & mantle contraction during jet swim
+      const mantleSquashX = 1 - swimFactor * 0.14 + Math.sin(t * 2.5) * 0.015;
+      const mantleSquashY = 1 + swimFactor * 0.12 - Math.sin(t * 2.5) * 0.015;
+
+      // 1. Tentacles (drawn behind/under head collar)
+      const tentacleOrder = [0, 7, 1, 6, 2, 5, 3, 4];
+      for (const idx of tentacleOrder) {
+        drawTentacle(idx, 8, t, swimFactor, systemicFocus, systemicPulse, xrayAlpha);
+      }
+
+      // 2. Siphon (funnel) on right side of head
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(64, -10);
+      ctx.quadraticCurveTo(106, 5, 114, 34);
+      ctx.quadraticCurveTo(96, 46, 62, 26);
+      ctx.closePath();
+      ctx.fillStyle = COLORS.bodyFill;
+      ctx.fill();
+      ctx.strokeStyle = COLORS.bodyStroke;
+      ctx.lineWidth = 2.4;
+      ctx.stroke();
+      ctx.restore();
+
+      // 3. Mantle (translucent glowing dome)
+      ctx.save();
+      ctx.scale(mantleSquashX, mantleSquashY);
+
+      const mantleGrad = ctx.createRadialGradient(0, -175, 25, 0, -160, 220);
+      mantleGrad.addColorStop(0, `rgba(120, 230, 255, ${0.14 + xrayAlpha * 0.08})`);
+      mantleGrad.addColorStop(0.7, 'rgba(30, 110, 175, 0.16)');
+      mantleGrad.addColorStop(1, 'rgba(130, 235, 255, 0.28)');
+
+      ctx.beginPath();
+      ctx.moveTo(-64, -36);
+      ctx.bezierCurveTo(-110, -78, -172, -165, -148, -268);
+      ctx.bezierCurveTo(-125, -360, -52, -395, 0, -395);
+      ctx.bezierCurveTo(52, -395, 125, -360, 148, -268);
+      ctx.bezierCurveTo(172, -165, 110, -78, 64, -36);
+      // Head collar
+      ctx.bezierCurveTo(86, 6, 78, 46, 0, 50);
+      ctx.bezierCurveTo(-78, 46, -86, 6, -64, -36);
+      ctx.closePath();
+
+      ctx.fillStyle = mantleGrad;
+      ctx.fill();
+
+      ctx.shadowColor = 'rgba(0, 245, 212, 0.45)';
+      ctx.shadowBlur = 22;
+      ctx.strokeStyle = COLORS.bodyStroke;
+      ctx.lineWidth = 3.2;
+      ctx.stroke();
+
+      // Specular glass highlights
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.moveTo(-115, -245);
+      ctx.quadraticCurveTo(-92, -338, -22, -362);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.24)';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // 4. Eyes (sleek stylized horizontal pupils)
+      for (const side of [-1, 1]) {
+        ctx.save();
+        ctx.translate(side * 52, -12);
+        ctx.rotate(side * 0.14);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 16, 12, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(7, 19, 36, 0.85)';
+        ctx.fill();
+        ctx.strokeStyle = COLORS.bodyStroke;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Horizontal octopus pupil
+        ctx.beginPath();
+        ctx.roundRect(-9, -3, 18, 6, 3);
+        ctx.fillStyle = '#00F5D4';
+        ctx.shadowColor = '#00F5D4';
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // 5. Internal X-ray Anatomy (Gills, Vessels, 3 Hearts)
+      if (xrayAlpha > 0.01) {
+        ctx.save();
+        ctx.globalAlpha = xrayAlpha;
+
+        // Gills
+        const gillGlow = branchialFocus * (0.45 + branchialPulse * 0.55);
+        drawGill(-1, gillGlow);
+        drawGill(1, gillGlow);
+
+        // Vascular pathways: Branchial hearts -> Gills -> Systemic heart
+        for (const side of [-1, 1]) {
+          const p0 = { x: side * 66, y: -125 };
+          const p1 = { x: side * 112, y: -145 };
+          const p2 = { x: side * 118, y: -195 };
+          const p3 = { x: side * 98, y: -232 };
+
+          // Branchial artery
+          ctx.beginPath();
+          ctx.moveTo(p0.x, p0.y);
+          ctx.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
+          ctx.strokeStyle = `rgba(0, 245, 212, ${0.28 + branchialFocus * 0.62})`;
+          ctx.lineWidth = 3 + branchialFocus * 1.5;
+          ctx.shadowColor = COLORS.branchial;
+          ctx.shadowBlur = 8 + branchialFocus * 14;
+          ctx.stroke();
+
+          // Return oxygenated vessel to systemic heart
+          const r0 = { x: side * 90, y: -210 };
+          const r1 = { x: side * 46, y: -185 };
+          const r2 = { x: side * 22, y: -135 };
+          const r3 = { x: 0, y: -86 };
+          ctx.beginPath();
+          ctx.moveTo(r0.x, r0.y);
+          ctx.bezierCurveTo(r1.x, r1.y, r2.x, r2.y, r3.x, r3.y);
+          ctx.strokeStyle = `rgba(0, 245, 212, ${0.15 + branchialFocus * 0.35})`;
+          ctx.lineWidth = 2.2;
+          ctx.stroke();
+
+          // Animated turquoise blood particles
+          const particleCount = branchialFocus > 0.1 ? 5 : 2;
+          for (let i = 0; i < particleCount; i++) {
+            const prog = (t * (0.75 + branchialFocus * 0.55) + i / particleCount) % 1;
+            const pt = cubicBezier(p0, p1, p2, p3, prog);
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 4.2 + branchialFocus * 2.2, 0, Math.PI * 2);
+            ctx.fillStyle = COLORS.branchial;
+            ctx.fill();
+          }
+          if (branchialFocus > 0.1) {
+            for (let i = 0; i < 3; i++) {
+              const prog = (t * 0.85 + i / 3 + 0.2) % 1;
+              const pt = cubicBezier(r0, r1, r2, r3, prog);
+              ctx.beginPath();
+              ctx.arc(pt.x, pt.y, 3.6, 0, Math.PI * 2);
+              ctx.fillStyle = '#8efcf0';
+              ctx.fill();
+            }
+          }
+        }
+
+        // Systemic vessels toward head/crown & down into collar
+        const headVessels = [
+          { p0: { x: 0, y: -82 }, p1: { x: -24, y: -165 }, p2: { x: -22, y: -260 }, p3: { x: 0, y: -338 } },
+          { p0: { x: 0, y: -82 }, p1: { x: 24, y: -165 }, p2: { x: 22, y: -260 }, p3: { x: 0, y: -338 } },
+          { p0: { x: 0, y: -76 }, p1: { x: -32, y: -35 }, p2: { x: -45, y: 8 }, p3: { x: -42, y: 42 } },
+          { p0: { x: 0, y: -76 }, p1: { x: 32, y: -35 }, p2: { x: 45, y: 8 }, p3: { x: 42, y: 42 } }
+        ];
+
+        for (let v = 0; v < headVessels.length; v++) {
+          const { p0, p1, p2, p3 } = headVessels[v];
+          ctx.beginPath();
+          ctx.moveTo(p0.x, p0.y);
+          ctx.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
+          ctx.strokeStyle = `rgba(255, 46, 126, ${0.22 + systemicFocus * 0.58})`;
+          ctx.lineWidth = 2.6 + systemicFocus * 1.4;
+          ctx.shadowColor = COLORS.systemic;
+          ctx.shadowBlur = 8 + systemicFocus * 16;
+          ctx.stroke();
+
+          if (!heartFrozen && (systemicFocus > 0.1 || xrayAlpha > 0.5)) {
+            const count = systemicFocus > 0.1 ? 4 : 1;
+            for (let i = 0; i < count; i++) {
+              const prog = (t * (0.8 + systemicFocus * 0.6) + i / count + v * 0.19) % 1;
+              const pt = cubicBezier(p0, p1, p2, p3, prog);
+              ctx.beginPath();
+              ctx.arc(pt.x, pt.y, 4 + systemicFocus * 2, 0, Math.PI * 2);
+              ctx.fillStyle = COLORS.systemic;
+              ctx.fill();
+            }
+          }
+        }
+
+        // Draw the 2 Branchial Hearts (#00F5D4)
+        const bSize = lerp(34, 44, branchialFocus);
+        drawHeartIcon(-66, -125, bSize, COLORS.branchial, true, branchialPulse, false);
+        drawHeartIcon(66, -125, bSize, COLORS.branchial, true, branchialPulse, false);
+
+        // Draw the 1 Central Systemic Heart (#FF2E7E)
+        const sSize = lerp(40, 50, systemicFocus);
+        drawHeartIcon(0, -82, sSize, COLORS.systemic, true, heartFrozen ? 0 : systemicPulse, heartFrozen);
+
+        // Visual Pause Indicator when central heart freezes during swimming
+        if (heartFrozen) {
+          ctx.save();
+          ctx.translate(0, -86);
+          const pop = easeOutBack(clamp((t - 15.0) / 0.28, 0, 1));
+          ctx.scale(pop, pop);
+
+          // Frozen pulse ring
+          ctx.beginPath();
+          ctx.arc(0, 0, 38, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(7, 19, 36, 0.78)';
+          ctx.fill();
+          ctx.strokeStyle = '#FFFFFF';
+          ctx.lineWidth = 3.5;
+          ctx.shadowColor = COLORS.systemic;
+          ctx.shadowBlur = 18;
+          ctx.stroke();
+
+          // Pause bars ||
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = '#FFFFFF';
+          ctx.beginPath();
+          ctx.roundRect(-11, -13, 8, 26, 3);
+          ctx.roundRect(3, -13, 8, 26, 3);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    // Kinetic Editorial Typography Renderer
+    function drawKineticText(lines, yCenter, tStart, tEnd, currentTime, fontSize = 64, keepFinal = false) {
+      if (currentTime < tStart || (!keepFinal && currentTime > tEnd)) return;
+
+      const enter = easeOutBack(clamp((currentTime - tStart) / 0.28, 0, 1));
+      const exit = keepFinal ? 1 : 1 - easeOutCubic(clamp((currentTime - (tEnd - 0.22)) / 0.22, 0, 1));
+      const alpha = clamp(enter, 0, 1) * clamp(exit, 0, 1);
+      if (alpha <= 0.01) return;
+
+      const slideY = (1 - enter) * 34 - (1 - exit) * 20;
+      const scale = lerp(0.86, 1.0, enter);
+
+      ctx.save();
+      ctx.translate(W / 2, yCenter + slideY);
+      ctx.scale(scale, scale);
+      ctx.globalAlpha = alpha;
+      ctx.font = `900 ${fontSize}px 'Outfit', system-ui, sans-serif`;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+
+      const lineHeight = fontSize * 1.18;
+      const totalH = lines.length * lineHeight;
+
+      lines.forEach((tokens, lineIdx) => {
+        const y = -totalH / 2 + lineHeight * (lineIdx + 0.5);
+
+        // Measure line width for exact centering
+        let totalW = 0;
+        const widths = tokens.map(tok => {
+          const w = ctx.measureText(tok.text).width;
+          totalW += w;
+          return w;
+        });
+
+        let cursorX = -totalW / 2;
+        tokens.forEach((tok, idx) => {
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.72)';
+          ctx.shadowBlur = 22;
+          ctx.shadowOffsetY = 6;
+          ctx.fillStyle = tok.color || '#FFFFFF';
+          ctx.fillText(tok.text, cursorX, y);
+
+          // Subtle colored glow for highlighted words
+          if (tok.color && tok.color !== '#FFFFFF') {
+            ctx.shadowColor = tok.color;
+            ctx.shadowBlur = 24;
+            ctx.shadowOffsetY = 0;
+            ctx.fillText(tok.text, cursorX, y);
+          }
+          cursorX += widths[idx];
+        });
+      });
+
+      ctx.restore();
+    }
+
+    // Main deterministic frame renderer
+    function renderFrame(t) {
+      // 1. Deep Abyssal Background (#071324 -> #0F294A)
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+      bgGrad.addColorStop(0, COLORS.bgTop);
+      bgGrad.addColorStop(1, COLORS.bgBot);
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Subtle abyssal volumetric radial glow behind subject
+      const radGlow = ctx.createRadialGradient(W * 0.5, H * 0.48, 40, W * 0.5, H * 0.48, 760);
+      radGlow.addColorStop(0, 'rgba(0, 245, 212, 0.08)');
+      radGlow.addColorStop(0.55, 'rgba(20, 75, 130, 0.12)');
+      radGlow.addColorStop(1, 'rgba(7, 19, 36, 0)');
+      ctx.fillStyle = radGlow;
+      ctx.fillRect(0, 0, W, H);
+
+      // 2. Plankton Particles (Depth-of-Field)
+      const swimBoost = smoothstep(15.0, 15.5, t) * (1 - smoothstep(18.0, 18.4, t));
+      plankton.forEach(p => {
+        const extraY = swimBoost * 900 * p.depth;
+        const py = ((p.y + t * p.speedY + extraY) % (H + 60) + (H + 60)) % (H + 60) - 30;
+        const px = p.x + Math.sin(t * 0.9 + p.phase) * p.driftAmp;
+
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        if (p.depth < 0.35) {
+          // Bokeh soft blur for far background particles
+          const g = ctx.createRadialGradient(px, py, 0, px, py, p.r * 2.2);
+          g.addColorStop(0, p.tint);
+          g.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(px, py, p.r * 2.2, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = p.tint;
+          ctx.beginPath();
+          ctx.arc(px, py, p.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      });
+
+      // 3. Camera & Motion Choreography across 20s
+      let camZoom = 1.0;
+      let camX = 0;
+      let camY = 0;
+      let octoX = W / 2;
+      let octoY = H * 0.53;
+      let octoRot = 0;
+
+      // Phase [0 - 3s]: Entrance float & dynamic zoom
+      if (t < 3.0) {
+        const k = easeOutCubic(t / 2.6);
+        octoY = lerp(H * 0.85, H * 0.53, k);
+        camZoom = lerp(0.72, 1.08, easeInOutCubic(t / 3.0));
+        octoRot = Math.sin(t * 1.4) * 0.04;
+      }
+      // Phase [3 - 10s]: Zoom gently toward mantle sides (2 branchial hearts)
+      else if (t < 10.0) {
+        const inZoom = easeInOutCubic(clamp((t - 3.0) / 1.4, 0, 1));
+        camZoom = lerp(1.08, 1.56, inZoom);
+        camY = lerp(0, 185, inZoom);
+        camX = Math.sin((t - 3.0) * 0.55) * 14;
+        octoY = H * 0.53 + Math.sin(t * 1.6) * 10;
+      }
+      // Phase [10 - 15s]: Center on systemic heart + reveal flow to head & tentacles
+      else if (t < 15.0) {
+        const k1 = easeInOutCubic(clamp((t - 10.0) / 1.1, 0, 1));
+        const k2 = easeInOutCubic(clamp((t - 12.2) / 2.0, 0, 1));
+        camZoom = lerp(1.56, 1.38, k1) - k2 * 0.24;
+        camY = lerp(185, 65, k1) - k2 * 65;
+        camX = 0;
+        octoY = H * 0.53 + Math.sin(t * 1.6) * 8;
+      }
+      // Phase [15 - 18.2s]: Jet propulsion sprint!
+      else if (t < 18.2) {
+        const sprintIn = easeOutCubic(clamp((t - 15.0) / 0.45, 0, 1));
+        camZoom = lerp(1.14, 0.96, sprintIn);
+        camY = lerp(0, -40, sprintIn);
+        octoY = H * 0.54 - sprintIn * 85 + Math.sin(t * 12) * 3;
+        octoX = W / 2 + Math.sin(t * 9) * 3;
+      }
+      // Phase [18.2 - 20.0s]: Brake sharply in front of camera for final impact!
+      else {
+        const brake = easeOutBack(clamp((t - 18.2) / 0.55, 0, 1));
+        camZoom = lerp(0.96, 1.28, brake);
+        camY = lerp(-40, 20, brake);
+        octoY = lerp(H * 0.46, H * 0.56, brake);
+      }
+
+      // 4. Hydrodynamic Streamlines during Jet Propulsion [15 - 18.2s]
+      if (t >= 15.0 && t < 18.45) {
+        const lineAlpha = smoothstep(15.0, 15.25, t) * (1 - smoothstep(18.0, 18.45, t));
+        ctx.save();
+        ctx.translate(W / 2, 0);
+        streamlines.forEach(s => {
+          const sy = ((s.yOffset + (t - 15.0) * s.speed) % (H + s.len)) - s.len;
+          const g = ctx.createLinearGradient(0, sy, 0, sy + s.len);
+          const col = s.cyan ? '0, 245, 212' : '195, 235, 255';
+          g.addColorStop(0, `rgba(${col}, 0)`);
+          g.addColorStop(0.5, `rgba(${col}, ${s.alpha * lineAlpha})`);
+          g.addColorStop(1, `rgba(${col}, 0)`);
+          ctx.strokeStyle = g;
+          ctx.lineWidth = s.width;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(s.x, sy);
+          ctx.lineTo(s.x, sy + s.len);
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+
+      // 5. Anatomy & Heart States
+      const xrayAlpha = smoothstep(0.9, 2.2, t);
+      const branchialFocus = smoothstep(3.0, 3.6, t) * (1 - smoothstep(9.8, 10.4, t));
+      const systemicFocus = smoothstep(10.0, 10.6, t) * (1 - smoothstep(14.9, 15.2, t));
+      const heartFrozen = t >= 15.0 && t < 18.4;
+      const swimFactor = smoothstep(15.0, 15.35, t) * (1 - smoothstep(18.1, 18.6, t));
+
+      const branchialPulse = getHeartBeat(t, 64 + branchialFocus * 18, 0.65 + branchialFocus * 0.55);
+      const systemicPulse = heartFrozen ? 0 : getHeartBeat(t, 64 + systemicFocus * 22, 0.65 + systemicFocus * 0.6);
+
+      // 6. Render Octopus with Virtual Camera Transform
+      ctx.save();
+      ctx.translate(W / 2 + camX, H / 2 + camY);
+      ctx.scale(camZoom, camZoom);
+      ctx.translate(-W / 2, -H / 2);
+
+      ctx.translate(octoX, octoY);
+      ctx.rotate(octoRot);
+
+      // Jet propulsion bubbles blasting out of siphon [15 - 18.2s]
+      if (t >= 15.0 && t < 18.5) {
+        const bAlpha = smoothstep(15.0, 15.2, t) * (1 - smoothstep(18.0, 18.5, t));
+        ctx.save();
+        jetBubbles.forEach(b => {
+          const bt = t - 15.0 - b.delay * 0.25;
+          if (bt > 0) {
+            const prog = (bt * b.speed) % 950;
+            const bx = 98 + b.offsetX + Math.sin(bt * 8 + b.wobble) * 14;
+            const by = 42 + prog;
+            ctx.beginPath();
+            ctx.arc(bx, by, b.r * (1 - prog / 1200), 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(190, 245, 255, ${(1 - prog / 950) * 0.55 * bAlpha})`;
+            ctx.fill();
+            ctx.strokeStyle = `rgba(0, 245, 212, ${(1 - prog / 950) * 0.7 * bAlpha})`;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }
+        });
+        ctx.restore();
+      }
+
+      drawOctopus(t, {
+        xrayAlpha,
+        branchialFocus,
+        systemicFocus,
+        heartFrozen,
+        swimFactor,
+        branchialPulse,
+        systemicPulse
+      });
+      ctx.restore();
+
+      // 7. Kinetic Typography (Reels / TikTok Safe Zones)
+      // [0:00 - 0:03] Hook
+      drawKineticText(
+        [
+          [{ text: 'ESTE ANIMAL TIENE' }],
+          [{ text: '3 CORAZONES', color: COLORS.branchial }]
+        ],
+        310, 0.25, 3.0, t, 76
+      );
+
+      // [0:03 - 0:10] Branchial hearts
+      drawKineticText(
+        [
+          [{ text: '2 ', color: COLORS.branchial }, { text: 'bombean sangre' }],
+          [{ text: 'hacia las ' }, { text: 'branquias', color: COLORS.branchial }]
+        ],
+        1490, 3.15, 10.0, t, 64
+      );
+
+      // [0:10 - 0:15] Systemic heart
+      drawKineticText(
+        [
+          [{ text: 'El ' }, { text: '3.º', color: COLORS.systemic }, { text: ' la impulsa' }],
+          [{ text: 'al resto del cuerpo' }]
+        ],
+        1490, 10.15, 15.0, t, 64
+      );
+
+      // [0:15 - 0:18.2] Freeze & swim twist
+      drawKineticText(
+        [
+          [{ text: 'Al nadar, este corazón' }],
+          [{ text: 'se detiene', color: COLORS.systemic }]
+        ],
+        310, 15.1, 18.25, t, 66
+      );
+
+      // [0:18.2 - 20.0] Final impact
+      drawKineticText(
+        [
+          [{ text: '¿Lo sabías?', color: '#FFFFFF' }]
+        ],
+        1470, 18.3, 20.0, t, 96, true
+      );
+
+      // Subtle editorial vignette
+      const vig = ctx.createRadialGradient(W / 2, H / 2, W * 0.42, W / 2, H / 2, H * 0.68);
+      vig.addColorStop(0, 'rgba(0,0,0,0)');
+      vig.addColorStop(1, 'rgba(3, 8, 18, 0.45)');
+      ctx.fillStyle = vig;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // Playback & Export Loop
+    let currentTime = 0;
+    let isPlaying = false;
+    let isRecording = false;
+    let lastTimestamp = 0;
+    let recStartTime = 0;
+
+    function updateUI() {
+      scrubber.value = currentTime.toFixed(2);
+      timecodeEl.textContent = `${currentTime.toFixed(2).padStart(5, '0')}s / 20.00s`;
+    }
+
+    function tick(now) {
+      if (isRecording) {
+        currentTime = (now - recStartTime) / 1000;
+        if (currentTime >= DURATION) {
+          currentTime = DURATION;
+          renderFrame(DURATION);
+          updateUI();
+          stopRecording();
+          return;
+        }
+        renderFrame(currentTime);
+        updateUI();
+        requestAnimationFrame(tick);
+        return;
+      }
+
+      if (isPlaying) {
+        const dt = (now - lastTimestamp) / 1000;
+        lastTimestamp = now;
+        currentTime += dt;
+        if (currentTime >= DURATION) {
+          currentTime = DURATION;
+          isPlaying = false;
+          playBtn.textContent = '▶ Reproducir';
+        }
+        renderFrame(currentTime);
+        updateUI();
+        if (isPlaying) requestAnimationFrame(tick);
+      }
+    }
+
+    playBtn.addEventListener('click', () => {
+      if (isRecording) return;
+      if (currentTime >= DURATION) currentTime = 0;
+      isPlaying = !isPlaying;
+      playBtn.textContent = isPlaying ? '❚❚ Pausar' : '▶ Reproducir';
+      if (isPlaying) {
+        lastTimestamp = performance.now();
+        requestAnimationFrame(tick);
+      }
+    });
+
+    restartBtn.addEventListener('click', () => {
+      if (isRecording) return;
+      currentTime = 0;
+      isPlaying = true;
+      playBtn.textContent = '❚❚ Pausar';
+      lastTimestamp = performance.now();
+      renderFrame(0);
+      updateUI();
+      requestAnimationFrame(tick);
+    });
+
+    scrubber.addEventListener('input', () => {
+      if (isRecording) return;
+      isPlaying = false;
+      playBtn.textContent = '▶ Reproducir';
+      currentTime = parseFloat(scrubber.value);
+      renderFrame(currentTime);
+      updateUI();
+    });
+
+    // MediaRecorder export (1080x1920 @ 60fps WebM)
+    let mediaRecorder = null;
+    let recordedChunks = [];
+
+    function stopRecording() {
+      isRecording = false;
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+      playBtn.disabled = false;
+      restartBtn.disabled = false;
+      exportBtn.disabled = false;
+      scrubber.disabled = false;
+    }
+
+    exportBtn.addEventListener('click', () => {
+      if (isRecording) return;
+
+      const mimeTypes = [
+        'video/webm;codecs=vp9',
+        'video/webm;codecs=vp8',
+        'video/webm'
+      ];
+      const mimeType = mimeTypes.find(m => MediaRecorder.isTypeSupported(m));
+      if (!mimeType) {
+        statusEl.textContent = 'Tu navegador no soporta MediaRecorder WebM. Prueba en Chrome o Edge.';
+        return;
+      }
+
+      isPlaying = false;
+      isRecording = true;
+      currentTime = 0;
+      recordedChunks = [];
+
+      playBtn.disabled = true;
+      restartBtn.disabled = true;
+      exportBtn.disabled = true;
+      scrubber.disabled = true;
+      statusEl.textContent = 'Grabando en tiempo real (20.00s a 1080×1920 · 60fps)... No minimices la pestaña.';
+
+      const stream = canvas.captureStream(60);
+      mediaRecorder = new MediaRecorder(stream, {
+        mimeType,
+        videoBitsPerSecond: 14000000
+      });
+
+      mediaRecorder.ondataavailable = e => {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'pulpo-3-corazones-9x16-60fps.webm';
+        a.click();
+        URL.revokeObjectURL(url);
+        statusEl.textContent = '¡Vídeo descargado! (.webm). Para pasarlo a .mp4 usa FFmpeg o CapCut.';
+      };
+
+      renderFrame(0);
+      mediaRecorder.start();
+      recStartTime = performance.now();
+      requestAnimationFrame(tick);
+    });
+
+    // Wait for font before initial frame
+    document.fonts.ready.then(() => {
+      renderFrame(0);
+      updateUI();
+    });
+    renderFrame(0);
+  </script>
+</body>
+</html>
