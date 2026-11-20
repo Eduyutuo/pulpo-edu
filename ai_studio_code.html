@@ -3,126 +3,646 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Explainer Pulpo 9:16 — 1080x1920 @ 60fps</title>
+  <title>Los Tres Corazones del Pulpo — Explainer 9:16</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg-dark: #040a14;
+      --card-bg: rgba(13, 27, 49, 0.78);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --accent-cyan: #00F5D4;
+      --accent-pink: #FF2E7E;
+      --accent-purple: #9333ea;
+      --text-main: #f0f7ff;
+      --text-muted: #8ea5c4;
+      --text-dim: #5c7494;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      background: #040b16;
-      color: #e6f2ff;
+      background: radial-gradient(circle at 50% 20%, #08172c 0%, #030811 100%);
+      color: var(--text-main);
       font-family: 'Outfit', system-ui, -apple-system, sans-serif;
       min-height: 100vh;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 14px;
-      padding: 16px;
+      padding: 24px 16px;
+      overflow-x: hidden;
     }
-    .stage-wrap {
+
+    /* Main container */
+    .app-layout {
+      width: 100%;
+      max-width: 1240px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 48px;
+      flex-wrap: wrap;
+    }
+
+    /* Left: Phone Mockup Frame */
+    .phone-container {
+      flex: 0 0 auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .phone-mockup {
       position: relative;
-      height: min(82vh, 960px);
-      aspect-ratio: 9 / 16;
-      border-radius: 18px;
+      width: 360px;
+      height: 720px;
+      background: #000000;
+      border-radius: 44px;
+      padding: 10px;
+      box-shadow: 
+        0 24px 70px rgba(0, 0, 0, 0.85),
+        0 0 0 3px #182842,
+        0 0 28px rgba(0, 245, 212, 0.15),
+        inset 0 0 6px rgba(255, 255, 255, 0.2);
+      display: flex;
+      flex-direction: column;
       overflow: hidden;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.12);
-      background: #071324;
     }
+
+    /* Dynamic island / punch hole notch */
+    .phone-notch {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 78px;
+      height: 16px;
+      background: #000;
+      border-radius: 12px;
+      z-index: 20;
+      box-shadow: 0 0 2px rgba(255, 255, 255, 0.15);
+      pointer-events: none;
+    }
+
+    .phone-screen {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 36px;
+      overflow: hidden;
+      background: #071324;
+      display: flex;
+    }
+
     canvas {
       width: 100%;
       height: 100%;
+      object-fit: contain;
       display: block;
     }
-    .controls {
-      width: min(560px, 95vw);
-      background: rgba(15, 41, 74, 0.55);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 14px;
-      padding: 12px 16px;
+
+    /* Right: Dashboard Controls */
+    .dashboard {
+      flex: 1 1 540px;
+      max-width: 620px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      backdrop-filter: blur(10px);
+      gap: 16px;
     }
-    .row {
+
+    /* Top pill */
+    .format-pill {
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(30, 48, 86, 0.55);
+      border: 1px solid rgba(86, 118, 184, 0.35);
+      color: #9cb2ed;
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+    }
+
+    .format-pill .dot {
+      width: 5px;
+      height: 5px;
+      background: var(--accent-cyan);
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    /* Headers */
+    .main-title {
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      line-height: 1.15;
+      color: #ffffff;
+    }
+
+    .main-subtitle {
+      font-size: 14.5px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    /* Control Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 16px 20px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Scrubber Row */
+    .timeline-header {
       display: flex;
       align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
+      justify-content: space-between;
     }
-    button {
-      background: #00F5D4;
-      color: #071324;
-      border: none;
-      border-radius: 9px;
-      padding: 9px 14px;
-      font-family: inherit;
-      font-weight: 900;
-      font-size: 13px;
-      cursor: pointer;
-      transition: transform 0.12s ease, opacity 0.15s ease;
+
+    .time-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      letter-spacing: -0.3px;
     }
-    button:hover { transform: translateY(-1px); }
-    button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
-    button.secondary {
-      background: rgba(255, 255, 255, 0.12);
-      color: #ffffff;
+
+    .scene-pill {
+      background: #10233f;
+      border: 1px solid #1c3b68;
+      color: #9ec5f2;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
     }
-    button.record {
-      background: #FF2E7E;
-      color: #ffffff;
-      margin-left: auto;
+
+    .range-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
     }
+
     input[type="range"] {
-      flex: 1;
-      accent-color: #00F5D4;
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.15);
+      outline: none;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.2s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      cursor: pointer;
+      box-shadow: 0 0 12px var(--accent-cyan);
+      border: 2px solid #ffffff;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 18px var(--accent-cyan);
+    }
+
+    .timeline-markers {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-dim);
+      font-weight: 700;
+      user-select: none;
+    }
+
+    .timeline-markers span {
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+
+    .timeline-markers span:hover,
+    .timeline-markers span.active {
+      color: var(--accent-cyan);
+    }
+
+    /* Action Buttons Row */
+    .actions-row {
+      display: grid;
+      grid-template-columns: 2fr 1.2fr 1.2fr;
+      gap: 10px;
+    }
+
+    button {
+      font-family: inherit;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 12px;
+      font-weight: 800;
+      transition: transform 0.12s ease, opacity 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+      user-select: none;
+    }
+
+    button:hover { transform: translateY(-2px); }
+    button:active { transform: translateY(0); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; }
+
+    .btn-play {
+      background: var(--accent-cyan);
+      color: #041426;
+      font-size: 15px;
+      padding: 13px 18px;
+      box-shadow: 0 4px 18px rgba(0, 245, 212, 0.35);
+    }
+
+    .btn-play:hover {
+      background: #2affde;
+      box-shadow: 0 6px 22px rgba(0, 245, 212, 0.5);
+    }
+
+    .btn-secondary {
+      background: #122238;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      font-size: 14px;
+      padding: 13px 14px;
+    }
+
+    .btn-secondary:hover {
+      background: #182e4c;
+      border-color: rgba(255, 255, 255, 0.22);
+    }
+
+    .btn-audio {
+      background: #122238;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      font-size: 14px;
+      padding: 13px 14px;
+    }
+
+    .btn-audio.active {
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+      box-shadow: 0 0 12px rgba(0, 245, 212, 0.2);
+    }
+
+    /* Settings & Export Grid */
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .setting-col {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .setting-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .checkbox-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--accent-cyan);
+    }
+
+    .checkbox-wrap input {
+      accent-color: var(--accent-cyan);
       cursor: pointer;
     }
-    .timecode {
-      font-variant-numeric: tabular-nums;
+
+    select {
+      background: #0e1c31;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #e2edff;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-family: inherit;
       font-size: 13px;
       font-weight: 700;
-      min-width: 96px;
-      text-align: right;
-      color: #9dc3e6;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.15s;
     }
-    .status {
-      font-size: 12px;
-      color: #8eb4d9;
-      min-height: 16px;
+
+    select:focus {
+      border-color: var(--accent-cyan);
+    }
+
+    .sub-note {
+      font-size: 11px;
+      color: var(--text-dim);
+      min-height: 15px;
+    }
+
+    .btn-export {
+      background: linear-gradient(135deg, #FF2E7E 0%, #8A2BE2 100%);
+      color: #ffffff;
+      padding: 11px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      box-shadow: 0 4px 18px rgba(255, 46, 126, 0.35);
+    }
+
+    .btn-export:hover {
+      box-shadow: 0 6px 24px rgba(255, 46, 126, 0.55);
+    }
+
+    /* Script Structure Section */
+    .script-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .script-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .script-legend {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 11px;
+      text-transform: none;
+      font-weight: 700;
+    }
+
+    .legend-branchial { color: var(--accent-cyan); }
+    .legend-systemic { color: var(--accent-pink); }
+
+    .script-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .script-card {
+      background: #091526;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.12s;
+    }
+
+    .script-card:hover {
+      background: #0e1e36;
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateX(3px);
+    }
+
+    .script-card.active {
+      border-color: var(--accent-cyan);
+      background: rgba(0, 245, 212, 0.06);
+    }
+
+    .badge-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+
+    .badge-branchial {
+      background: rgba(0, 245, 212, 0.14);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(0, 245, 212, 0.35);
+    }
+
+    .badge-systemic {
+      background: rgba(255, 46, 126, 0.14);
+      color: var(--accent-pink);
+      border: 1px solid rgba(255, 46, 126, 0.35);
+    }
+
+    .script-text {
+      font-size: 12.5px;
+      line-height: 1.38;
+      color: var(--text-muted);
+    }
+
+    .script-text strong {
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    /* Responsive */
+    @media (max-width: 950px) {
+      .app-layout {
+        flex-direction: column;
+        align-items: center;
+        gap: 28px;
+      }
+      .phone-mockup {
+        width: 320px;
+        height: 640px;
+      }
+      .dashboard {
+        width: 100%;
+      }
     }
   </style>
 </head>
 <body>
 
-  <div class="stage-wrap">
-    <canvas id="stage" width="1080" height="1920"></canvas>
-  </div>
+  <div class="app-layout">
+    
+    <!-- Left: Smartphone 9:16 Canvas Mockup -->
+    <div class="phone-container">
+      <div class="phone-mockup">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <canvas id="stage" width="1080" height="1920"></canvas>
+        </div>
+      </div>
+    </div>
 
-  <div class="controls">
-    <div class="row">
-      <button id="playBtn">▶ Reproducir</button>
-      <button id="restartBtn" class="secondary">↺ Reiniciar</button>
-      <button id="exportBtn" class="record">● Exportar Vídeo (20s · 60fps)</button>
+    <!-- Right: Complete Dashboard Controls -->
+    <div class="dashboard">
+      
+      <!-- Top format pill -->
+      <div class="format-pill">
+        <span class="dot"></span> 9:16 REELS / TIKTOK • 1080×1920 • 60 FPS
+      </div>
+
+      <!-- Title & Subtitle -->
+      <div>
+        <h1 class="main-title">Los Tres Corazones del Pulpo</h1>
+        <p class="main-subtitle">Animación vectorial procedural en tiempo real con síntesis de audio y narración en español.</p>
+      </div>
+
+      <!-- Scrubber Card -->
+      <div class="card">
+        <div class="timeline-header">
+          <div class="time-display" id="timecode">00:00.0 / 00:20.0</div>
+          <div class="scene-pill" id="scenePill">Escena 1: Gancho Visual (0–3s)</div>
+        </div>
+
+        <div class="range-wrap">
+          <input id="scrubber" type="range" min="0" max="20" step="0.01" value="0" />
+        </div>
+
+        <div class="timeline-markers">
+          <span data-time="0" class="active">0–3s Gancho</span>
+          <span data-time="3">3–10s Branquiales</span>
+          <span data-time="10">10–15s Sistémico</span>
+          <span data-time="15">15–20s Natación</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons Row -->
+      <div class="actions-row">
+        <button id="playBtn" class="btn-play">▶ Reproducir</button>
+        <button id="restartBtn" class="btn-secondary">↺ Reiniciar</button>
+        <button id="audioToggleBtn" class="btn-audio active">🔊 Audio On</button>
+      </div>
+
+      <!-- Settings & Export Row -->
+      <div class="card">
+        <div class="settings-grid">
+          
+          <!-- Column 1: Spanish Narration & Speed -->
+          <div class="setting-col">
+            <div class="setting-header">
+              <span>Narración en Español</span>
+              <label class="checkbox-wrap">
+                <input type="checkbox" id="narrationActiveCheck" checked /> Activa
+              </label>
+            </div>
+            <select id="voiceRateSelect">
+              <option value="0.95">Ritmo Pausado (0.95x)</option>
+              <option value="1.00">Ritmo Estándar (1.00x)</option>
+              <option value="1.05" selected>Ritmo Natural (1.05x)</option>
+              <option value="1.15">Ritmo Dinámico (1.15x)</option>
+              <option value="1.25">Ritmo Rápido (1.25x)</option>
+            </select>
+            <div class="sub-note" id="voiceNameNote">Voz: Detectando voz en español...</div>
+          </div>
+
+          <!-- Column 2: Export Video -->
+          <div class="setting-col">
+            <div class="setting-header">
+              <span>Renderizado Final (1080×1920)</span>
+            </div>
+            <button id="exportBtn" class="btn-export">
+              <span>📥 Exportar Vídeo</span>
+            </button>
+            <div class="sub-note" id="statusNote">Incluye pista de audio procedural</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Guion Structure Section -->
+      <div class="card script-section">
+        <div class="script-header">
+          <span>ESTRUCTURA DEL GUION (20S)</span>
+          <div class="script-legend">
+            <span class="legend-branchial">● Branquiales (x2)</span>
+            <span class="legend-systemic">● Sistémico</span>
+          </div>
+        </div>
+
+        <div class="script-list">
+          
+          <div class="script-card active" data-cue="0">
+            <span class="badge-time badge-branchial">00–03s</span>
+            <span class="script-text"><strong>«Este animal tiene tres corazones.»</strong> — Gancho visual y ondas bioluminiscentes.</span>
+          </div>
+
+          <div class="script-card" data-cue="1">
+            <span class="badge-time badge-branchial">03–10s</span>
+            <span class="script-text"><strong>«Dos bombean sangre hacia las branquias.»</strong> — Zoom anatómico a los corazones laterales cian.</span>
+          </div>
+
+          <div class="script-card" data-cue="2">
+            <span class="badge-time badge-systemic">10–15s</span>
+            <span class="script-text"><strong>«El tercero la impulsa al resto del cuerpo.»</strong> — Enfoque en el corazón central coral.</span>
+          </div>
+
+          <div class="script-card" data-cue="3">
+            <span class="badge-time badge-systemic">15–20s</span>
+            <span class="script-text"><strong>«Al nadar, este corazón se detiene.»</strong> — Impulso hidrojet y twist final.</span>
+          </div>
+
+        </div>
+      </div>
+
     </div>
-    <div class="row">
-      <input id="scrubber" type="range" min="0" max="20" step="0.01" value="0" />
-      <div class="timecode" id="timecode">00.00s / 20.00s</div>
-    </div>
-    <div class="status" id="status">Formato nativo: 1080×1920 px (9:16) · 60 fps</div>
+
   </div>
 
   <script>
+    /* ==========================================================
+       CANVAS & CONSTANTS
+       ========================================================== */
     const canvas = document.getElementById('stage');
     const ctx = canvas.getContext('2d');
     const playBtn = document.getElementById('playBtn');
     const restartBtn = document.getElementById('restartBtn');
+    const audioToggleBtn = document.getElementById('audioToggleBtn');
     const exportBtn = document.getElementById('exportBtn');
     const scrubber = document.getElementById('scrubber');
     const timecodeEl = document.getElementById('timecode');
-    const statusEl = document.getElementById('status');
+    const scenePill = document.getElementById('scenePill');
+    const statusNote = document.getElementById('statusNote');
+    const voiceNameNote = document.getElementById('voiceNameNote');
+    const voiceRateSelect = document.getElementById('voiceRateSelect');
+    const narrationActiveCheck = document.getElementById('narrationActiveCheck');
+    const scriptCards = document.querySelectorAll('.script-card');
+    const markerSpans = document.querySelectorAll('.timeline-markers span');
 
     const W = 1080;
     const H = 1920;
@@ -169,7 +689,6 @@
       };
     }
 
-    // Deterministic pseudo-random generator
     function mulberry32(a) {
       return function () {
         let t = a += 0x6D2B79F5;
@@ -181,9 +700,9 @@
 
     const rand = mulberry32(42069);
 
-    // Pre-generate plankton particles with depth-of-field layers
+    // Particles & Streamlines
     const plankton = Array.from({ length: 85 }, () => {
-      const depth = rand(); // 0 = far/blurry, 1 = near/crisp
+      const depth = rand();
       return {
         x: rand() * W,
         y: rand() * H,
@@ -197,7 +716,6 @@
       };
     });
 
-    // Pre-generate hydrodynamic streamlines for [15s - 18.2s]
     const streamlines = Array.from({ length: 34 }, () => ({
       x: (rand() - 0.5) * 960,
       yOffset: rand() * H,
@@ -208,7 +726,6 @@
       cyan: rand() > 0.6
     }));
 
-    // Pre-generate jet propulsion bubbles
     const jetBubbles = Array.from({ length: 42 }, () => ({
       offsetX: (rand() - 0.5) * 48,
       delay: rand() * 3.0,
@@ -217,18 +734,244 @@
       wobble: rand() * Math.PI * 2
     }));
 
-    // Heartbeat waveform (lub-dub)
     function getHeartBeat(t, bpm, intensity = 1) {
       if (intensity <= 0.001) return 0;
       const period = 60 / bpm;
       const phase = (t % period) / period;
-      // Primary systole spike + secondary diastolic bounce
       const beat1 = Math.exp(-Math.pow((phase - 0.14) / 0.065, 2));
       const beat2 = 0.52 * Math.exp(-Math.pow((phase - 0.30) / 0.075, 2));
       return clamp((beat1 + beat2) * intensity, 0, 1.25);
     }
 
-    // Draw stylized heart shape
+    /* ==========================================================
+       AUDIO & SPEECH SYNTHESIS ENGINE
+       ========================================================== */
+    let audioEnabled = true;
+    let audioCtx = null;
+    let audioDest = null;
+    let ambientGain = null;
+    let selectedVoice = null;
+    let currentUtterance = null;
+    let lastSpokenCueIndex = -1;
+
+    const CUES = [
+      {
+        start: 0.1,
+        end: 3.0,
+        sceneName: 'Escena 1: Gancho Visual (0–3s)',
+        text: 'Este animal tiene tres corazones.'
+      },
+      {
+        start: 3.0,
+        end: 10.0,
+        sceneName: 'Escena 2: Branquiales (3–10s)',
+        text: 'Dos bombean sangre hacia las branquias.'
+      },
+      {
+        start: 10.0,
+        end: 15.0,
+        sceneName: 'Escena 3: Sistémico (10–15s)',
+        text: 'El tercero la impulsa al resto del cuerpo.'
+      },
+      {
+        start: 15.0,
+        end: 20.0,
+        sceneName: 'Escena 4: Natación (15–20s)',
+        text: 'Y al nadar, este corazón se detiene. ¿Lo sabías?'
+      }
+    ];
+
+    function initAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+          audioDest = audioCtx.createMediaStreamDestination();
+          setupAmbientDrone();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function setupAmbientDrone() {
+      if (!audioCtx) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const filter = audioCtx.createBiquadFilter();
+        ambientGain = audioCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(52, audioCtx.currentTime);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(140, audioCtx.currentTime);
+
+        ambientGain.gain.setValueAtTime(audioEnabled ? 0.08 : 0, audioCtx.currentTime);
+
+        osc.connect(filter);
+        filter.connect(ambientGain);
+        ambientGain.connect(audioCtx.destination);
+        ambientGain.connect(audioDest);
+        osc.start();
+      } catch (e) {
+        console.warn('Ambient drone error:', e);
+      }
+    }
+
+    // Procedural sound effects
+    let lastBranchialSoundTime = 0;
+    let lastSystemicSoundTime = 0;
+    let lastWhooshTime = 0;
+
+    function triggerProceduralAudio(t, branchialPulse, systemicPulse, heartFrozen) {
+      if (!audioEnabled || !audioCtx || audioCtx.state !== 'running') return;
+
+      const now = audioCtx.currentTime;
+
+      // Branchial thump (cyan, softer, double beat)
+      if (branchialPulse > 0.82 && (t - lastBranchialSoundTime > 0.55)) {
+        lastBranchialSoundTime = t;
+        playHeartThump(180, 55, 0.12, 0.07);
+      }
+
+      // Systemic thump (coral, deep sub bass)
+      if (!heartFrozen && systemicPulse > 0.85 && (t - lastSystemicSoundTime > 0.55)) {
+        lastSystemicSoundTime = t;
+        playHeartThump(95, 32, 0.22, 0.12);
+      }
+
+      // Jet sprint whoosh at 15.0s
+      if (t >= 15.0 && t < 15.4 && (t - lastWhooshTime > 4.0)) {
+        lastWhooshTime = t;
+        playSprintWhoosh();
+      }
+    }
+
+    function playHeartThump(startFreq, endFreq, gainVal, dur) {
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const t0 = audioCtx.currentTime;
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(startFreq, t0);
+        osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), t0 + dur);
+
+        gain.gain.setValueAtTime(gainVal, t0);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        gain.connect(audioDest);
+
+        osc.start(t0);
+        osc.stop(t0 + dur);
+      } catch (e) {}
+    }
+
+    function playSprintWhoosh() {
+      try {
+        const dur = 1.8;
+        const bufferSize = audioCtx.sampleRate * dur;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(250, audioCtx.currentTime);
+        filter.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.6);
+        filter.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + dur);
+        filter.Q.value = 2.5;
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.18, audioCtx.currentTime + 0.35);
+        gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+        gain.connect(audioDest);
+
+        noise.start();
+        noise.stop(audioCtx.currentTime + dur);
+      } catch (e) {}
+    }
+
+    // Web Speech API initialization
+    function loadVoices() {
+      if (!('speechSynthesis' in window)) {
+        voiceNameNote.textContent = 'Tu navegador no soporta síntesis de voz.';
+        return;
+      }
+      const voices = window.speechSynthesis.getVoices();
+      if (!voices || voices.length === 0) return;
+
+      // Filter Spanish voices
+      const spanishVoices = voices.filter(v => 
+        v.lang && (v.lang.toLowerCase().startsWith('es') || v.lang.toLowerCase().includes('es-'))
+      );
+
+      // Prioritize natural / neural / female voices like Paulina, Sabina, Monica, Google español
+      selectedVoice = spanishVoices.find(v => /paulina|sabina|monica|elena|paloma|laura|sofia|female/i.test(v.name)) ||
+                      spanishVoices.find(v => /google/i.test(v.name)) ||
+                      spanishVoices[0] ||
+                      voices[0];
+
+      if (selectedVoice) {
+        voiceNameNote.textContent = `Voz: ${selectedVoice.name} (${selectedVoice.lang})`;
+      } else {
+        voiceNameNote.textContent = 'Voz: Predeterminada del sistema';
+      }
+    }
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+      loadVoices();
+    }
+
+    function speakCue(index) {
+      if (!audioEnabled || !narrationActiveCheck.checked || !('speechSynthesis' in window)) return;
+      if (index < 0 || index >= CUES.length) return;
+
+      try {
+        window.speechSynthesis.cancel();
+      } catch (e) {}
+
+      const cue = CUES[index];
+      const utter = new SpeechSynthesisUtterance(cue.text);
+      if (selectedVoice) utter.voice = selectedVoice;
+      utter.lang = selectedVoice ? selectedVoice.lang : 'es-MX';
+      utter.rate = parseFloat(voiceRateSelect.value) || 1.05;
+      utter.pitch = 1.0;
+      utter.volume = 1.0;
+
+      currentUtterance = utter;
+      try {
+        window.speechSynthesis.speak(utter);
+      } catch (e) {
+        console.warn('Speech error:', e);
+      }
+    }
+
+    function stopSpeech() {
+      if ('speechSynthesis' in window) {
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+      }
+      currentUtterance = null;
+    }
+
+    /* ==========================================================
+       CANVAS RENDERING (ANATOMY, SHAPES & KINETIC TEXT)
+       ========================================================== */
     function drawHeartIcon(x, y, size, color, glow, pulse, frozen = false) {
       ctx.save();
       ctx.translate(x, y);
@@ -249,14 +992,12 @@
       ctx.fillStyle = frozen ? 'rgba(255, 46, 126, 0.45)' : color;
       ctx.fill();
 
-      // Inner bright core
       ctx.shadowBlur = 0;
       ctx.beginPath();
       ctx.arc(-0.14, -0.22, 0.11, 0, Math.PI * 2);
       ctx.fillStyle = frozen ? 'rgba(255,255,255,0.25)' : 'rgba(255, 255, 255, 0.65)';
       ctx.fill();
 
-      // Pulse ring wave
       if (!frozen && pulse > 0.15) {
         const ringScale = 1.15 + (1 - pulse) * 0.9;
         ctx.beginPath();
@@ -269,7 +1010,6 @@
       ctx.restore();
     }
 
-    // Draw feathery gill structure
     function drawGill(side, glowAlpha) {
       ctx.save();
       ctx.scale(side, 1);
@@ -279,13 +1019,11 @@
       ctx.shadowBlur = 12 + glowAlpha * 24;
       ctx.lineWidth = 2.6;
 
-      // Main gill spine
       ctx.beginPath();
       ctx.moveTo(86, -150);
       ctx.quadraticCurveTo(132, -205, 96, -278);
       ctx.stroke();
 
-      // Feathery lamellae
       for (let i = 0; i < 6; i++) {
         const k = i / 5;
         const bx = lerp(94, 108, k);
@@ -299,9 +1037,8 @@
       ctx.restore();
     }
 
-    // Draw organic tapered tentacle ribbon
     function drawTentacle(index, total, t, swimFactor, systemicActive, systemicPulse, xrayAlpha) {
-      const norm = (index / (total - 1)) * 2 - 1; // -1 .. +1
+      const norm = (index / (total - 1)) * 2 - 1;
       const baseX = norm * 62;
       const baseY = 38 + Math.abs(norm) * 8;
       const len = lerp(330, 250, Math.abs(norm)) * lerp(1, 1.18, swimFactor);
@@ -310,7 +1047,7 @@
       const pts = [];
       const steps = 18;
       const waveSpeed = lerp(2.6, 8.5, swimFactor);
-      const spreadFactor = lerp(1.0, 0.38, swimFactor); // Streamlined when jet-swimming
+      const spreadFactor = lerp(1.0, 0.38, swimFactor);
 
       for (let i = 0; i <= steps; i++) {
         const s = i / steps;
@@ -322,7 +1059,6 @@
         pts.push({ x: px, y: py });
       }
 
-      // Compute polygon ribbon edges
       const leftPts = [];
       const rightPts = [];
       for (let i = 0; i <= steps; i++) {
@@ -354,7 +1090,6 @@
       ctx.shadowBlur = 10;
       ctx.stroke();
 
-      // Internal blood vessel in tentacle (glows in systemic phase)
       if (xrayAlpha > 0.05) {
         ctx.shadowBlur = systemicActive ? 14 : 4;
         ctx.shadowColor = COLORS.systemic;
@@ -365,7 +1100,6 @@
         ctx.lineWidth = 2.2 + systemicActive * 1.2;
         ctx.stroke();
 
-        // Luminous blood particles flowing down tentacle
         if (systemicActive > 0.1) {
           for (let p = 0; p < 2; p++) {
             const prog = ((t * 0.95 + index * 0.17 + p * 0.5) % 1);
@@ -384,7 +1118,6 @@
       ctx.restore();
     }
 
-    // Draw the complete X-ray bioluminescent octopus
     function drawOctopus(t, state) {
       const {
         xrayAlpha,
@@ -396,17 +1129,15 @@
         systemicPulse
       } = state;
 
-      // Subtle breathing & mantle contraction during jet swim
       const mantleSquashX = 1 - swimFactor * 0.14 + Math.sin(t * 2.5) * 0.015;
       const mantleSquashY = 1 + swimFactor * 0.12 - Math.sin(t * 2.5) * 0.015;
 
-      // 1. Tentacles (drawn behind/under head collar)
       const tentacleOrder = [0, 7, 1, 6, 2, 5, 3, 4];
       for (const idx of tentacleOrder) {
         drawTentacle(idx, 8, t, swimFactor, systemicFocus, systemicPulse, xrayAlpha);
       }
 
-      // 2. Siphon (funnel) on right side of head
+      // Siphon
       ctx.save();
       ctx.beginPath();
       ctx.moveTo(64, -10);
@@ -420,7 +1151,7 @@
       ctx.stroke();
       ctx.restore();
 
-      // 3. Mantle (translucent glowing dome)
+      // Mantle
       ctx.save();
       ctx.scale(mantleSquashX, mantleSquashY);
 
@@ -435,7 +1166,6 @@
       ctx.bezierCurveTo(-125, -360, -52, -395, 0, -395);
       ctx.bezierCurveTo(52, -395, 125, -360, 148, -268);
       ctx.bezierCurveTo(172, -165, 110, -78, 64, -36);
-      // Head collar
       ctx.bezierCurveTo(86, 6, 78, 46, 0, 50);
       ctx.bezierCurveTo(-78, 46, -86, 6, -64, -36);
       ctx.closePath();
@@ -449,7 +1179,6 @@
       ctx.lineWidth = 3.2;
       ctx.stroke();
 
-      // Specular glass highlights
       ctx.shadowBlur = 0;
       ctx.beginPath();
       ctx.moveTo(-115, -245);
@@ -459,7 +1188,7 @@
       ctx.lineCap = 'round';
       ctx.stroke();
 
-      // 4. Eyes (sleek stylized horizontal pupils)
+      // Eyes
       for (const side of [-1, 1]) {
         ctx.save();
         ctx.translate(side * 52, -12);
@@ -472,7 +1201,6 @@
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        // Horizontal octopus pupil
         ctx.beginPath();
         ctx.roundRect(-9, -3, 18, 6, 3);
         ctx.fillStyle = '#00F5D4';
@@ -482,24 +1210,21 @@
         ctx.restore();
       }
 
-      // 5. Internal X-ray Anatomy (Gills, Vessels, 3 Hearts)
+      // X-ray Hearts & Vessels
       if (xrayAlpha > 0.01) {
         ctx.save();
         ctx.globalAlpha = xrayAlpha;
 
-        // Gills
         const gillGlow = branchialFocus * (0.45 + branchialPulse * 0.55);
         drawGill(-1, gillGlow);
         drawGill(1, gillGlow);
 
-        // Vascular pathways: Branchial hearts -> Gills -> Systemic heart
         for (const side of [-1, 1]) {
           const p0 = { x: side * 66, y: -125 };
           const p1 = { x: side * 112, y: -145 };
           const p2 = { x: side * 118, y: -195 };
           const p3 = { x: side * 98, y: -232 };
 
-          // Branchial artery
           ctx.beginPath();
           ctx.moveTo(p0.x, p0.y);
           ctx.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
@@ -509,7 +1234,6 @@
           ctx.shadowBlur = 8 + branchialFocus * 14;
           ctx.stroke();
 
-          // Return oxygenated vessel to systemic heart
           const r0 = { x: side * 90, y: -210 };
           const r1 = { x: side * 46, y: -185 };
           const r2 = { x: side * 22, y: -135 };
@@ -521,7 +1245,6 @@
           ctx.lineWidth = 2.2;
           ctx.stroke();
 
-          // Animated turquoise blood particles
           const particleCount = branchialFocus > 0.1 ? 5 : 2;
           for (let i = 0; i < particleCount; i++) {
             const prog = (t * (0.75 + branchialFocus * 0.55) + i / particleCount) % 1;
@@ -531,19 +1254,8 @@
             ctx.fillStyle = COLORS.branchial;
             ctx.fill();
           }
-          if (branchialFocus > 0.1) {
-            for (let i = 0; i < 3; i++) {
-              const prog = (t * 0.85 + i / 3 + 0.2) % 1;
-              const pt = cubicBezier(r0, r1, r2, r3, prog);
-              ctx.beginPath();
-              ctx.arc(pt.x, pt.y, 3.6, 0, Math.PI * 2);
-              ctx.fillStyle = '#8efcf0';
-              ctx.fill();
-            }
-          }
         }
 
-        // Systemic vessels toward head/crown & down into collar
         const headVessels = [
           { p0: { x: 0, y: -82 }, p1: { x: -24, y: -165 }, p2: { x: -22, y: -260 }, p3: { x: 0, y: -338 } },
           { p0: { x: 0, y: -82 }, p1: { x: 24, y: -165 }, p2: { x: 22, y: -260 }, p3: { x: 0, y: -338 } },
@@ -575,23 +1287,21 @@
           }
         }
 
-        // Draw the 2 Branchial Hearts (#00F5D4)
+        // Branchial Hearts
         const bSize = lerp(34, 44, branchialFocus);
         drawHeartIcon(-66, -125, bSize, COLORS.branchial, true, branchialPulse, false);
         drawHeartIcon(66, -125, bSize, COLORS.branchial, true, branchialPulse, false);
 
-        // Draw the 1 Central Systemic Heart (#FF2E7E)
+        // Systemic Central Heart
         const sSize = lerp(40, 50, systemicFocus);
         drawHeartIcon(0, -82, sSize, COLORS.systemic, true, heartFrozen ? 0 : systemicPulse, heartFrozen);
 
-        // Visual Pause Indicator when central heart freezes during swimming
         if (heartFrozen) {
           ctx.save();
           ctx.translate(0, -86);
           const pop = easeOutBack(clamp((t - 15.0) / 0.28, 0, 1));
           ctx.scale(pop, pop);
 
-          // Frozen pulse ring
           ctx.beginPath();
           ctx.arc(0, 0, 38, 0, Math.PI * 2);
           ctx.fillStyle = 'rgba(7, 19, 36, 0.78)';
@@ -602,7 +1312,6 @@
           ctx.shadowBlur = 18;
           ctx.stroke();
 
-          // Pause bars ||
           ctx.shadowBlur = 0;
           ctx.fillStyle = '#FFFFFF';
           ctx.beginPath();
@@ -617,7 +1326,6 @@
       ctx.restore();
     }
 
-    // Kinetic Editorial Typography Renderer
     function drawKineticText(lines, yCenter, tStart, tEnd, currentTime, fontSize = 64, keepFinal = false) {
       if (currentTime < tStart || (!keepFinal && currentTime > tEnd)) return;
 
@@ -643,7 +1351,6 @@
       lines.forEach((tokens, lineIdx) => {
         const y = -totalH / 2 + lineHeight * (lineIdx + 0.5);
 
-        // Measure line width for exact centering
         let totalW = 0;
         const widths = tokens.map(tok => {
           const w = ctx.measureText(tok.text).width;
@@ -659,7 +1366,6 @@
           ctx.fillStyle = tok.color || '#FFFFFF';
           ctx.fillText(tok.text, cursorX, y);
 
-          // Subtle colored glow for highlighted words
           if (tok.color && tok.color !== '#FFFFFF') {
             ctx.shadowColor = tok.color;
             ctx.shadowBlur = 24;
@@ -673,16 +1379,15 @@
       ctx.restore();
     }
 
-    // Main deterministic frame renderer
     function renderFrame(t) {
-      // 1. Deep Abyssal Background (#071324 -> #0F294A)
+      // Background gradient
       const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
       bgGrad.addColorStop(0, COLORS.bgTop);
       bgGrad.addColorStop(1, COLORS.bgBot);
       ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, W, H);
 
-      // Subtle abyssal volumetric radial glow behind subject
+      // Radial glow
       const radGlow = ctx.createRadialGradient(W * 0.5, H * 0.48, 40, W * 0.5, H * 0.48, 760);
       radGlow.addColorStop(0, 'rgba(0, 245, 212, 0.08)');
       radGlow.addColorStop(0.55, 'rgba(20, 75, 130, 0.12)');
@@ -690,7 +1395,7 @@
       ctx.fillStyle = radGlow;
       ctx.fillRect(0, 0, W, H);
 
-      // 2. Plankton Particles (Depth-of-Field)
+      // Plankton Particles
       const swimBoost = smoothstep(15.0, 15.5, t) * (1 - smoothstep(18.0, 18.4, t));
       plankton.forEach(p => {
         const extraY = swimBoost * 900 * p.depth;
@@ -700,7 +1405,6 @@
         ctx.save();
         ctx.globalAlpha = p.alpha;
         if (p.depth < 0.35) {
-          // Bokeh soft blur for far background particles
           const g = ctx.createRadialGradient(px, py, 0, px, py, p.r * 2.2);
           g.addColorStop(0, p.tint);
           g.addColorStop(1, 'rgba(0,0,0,0)');
@@ -717,7 +1421,7 @@
         ctx.restore();
       });
 
-      // 3. Camera & Motion Choreography across 20s
+      // Camera & Octopus Coordinates
       let camZoom = 1.0;
       let camX = 0;
       let camY = 0;
@@ -725,47 +1429,38 @@
       let octoY = H * 0.53;
       let octoRot = 0;
 
-      // Phase [0 - 3s]: Entrance float & dynamic zoom
       if (t < 3.0) {
         const k = easeOutCubic(t / 2.6);
         octoY = lerp(H * 0.85, H * 0.53, k);
         camZoom = lerp(0.72, 1.08, easeInOutCubic(t / 3.0));
         octoRot = Math.sin(t * 1.4) * 0.04;
-      }
-      // Phase [3 - 10s]: Zoom gently toward mantle sides (2 branchial hearts)
-      else if (t < 10.0) {
+      } else if (t < 10.0) {
         const inZoom = easeInOutCubic(clamp((t - 3.0) / 1.4, 0, 1));
         camZoom = lerp(1.08, 1.56, inZoom);
         camY = lerp(0, 185, inZoom);
         camX = Math.sin((t - 3.0) * 0.55) * 14;
         octoY = H * 0.53 + Math.sin(t * 1.6) * 10;
-      }
-      // Phase [10 - 15s]: Center on systemic heart + reveal flow to head & tentacles
-      else if (t < 15.0) {
+      } else if (t < 15.0) {
         const k1 = easeInOutCubic(clamp((t - 10.0) / 1.1, 0, 1));
         const k2 = easeInOutCubic(clamp((t - 12.2) / 2.0, 0, 1));
         camZoom = lerp(1.56, 1.38, k1) - k2 * 0.24;
         camY = lerp(185, 65, k1) - k2 * 65;
         camX = 0;
         octoY = H * 0.53 + Math.sin(t * 1.6) * 8;
-      }
-      // Phase [15 - 18.2s]: Jet propulsion sprint!
-      else if (t < 18.2) {
+      } else if (t < 18.2) {
         const sprintIn = easeOutCubic(clamp((t - 15.0) / 0.45, 0, 1));
         camZoom = lerp(1.14, 0.96, sprintIn);
         camY = lerp(0, -40, sprintIn);
         octoY = H * 0.54 - sprintIn * 85 + Math.sin(t * 12) * 3;
         octoX = W / 2 + Math.sin(t * 9) * 3;
-      }
-      // Phase [18.2 - 20.0s]: Brake sharply in front of camera for final impact!
-      else {
+      } else {
         const brake = easeOutBack(clamp((t - 18.2) / 0.55, 0, 1));
         camZoom = lerp(0.96, 1.28, brake);
         camY = lerp(-40, 20, brake);
         octoY = lerp(H * 0.46, H * 0.56, brake);
       }
 
-      // 4. Hydrodynamic Streamlines during Jet Propulsion [15 - 18.2s]
+      // Streamlines
       if (t >= 15.0 && t < 18.45) {
         const lineAlpha = smoothstep(15.0, 15.25, t) * (1 - smoothstep(18.0, 18.45, t));
         ctx.save();
@@ -788,7 +1483,6 @@
         ctx.restore();
       }
 
-      // 5. Anatomy & Heart States
       const xrayAlpha = smoothstep(0.9, 2.2, t);
       const branchialFocus = smoothstep(3.0, 3.6, t) * (1 - smoothstep(9.8, 10.4, t));
       const systemicFocus = smoothstep(10.0, 10.6, t) * (1 - smoothstep(14.9, 15.2, t));
@@ -798,7 +1492,10 @@
       const branchialPulse = getHeartBeat(t, 64 + branchialFocus * 18, 0.65 + branchialFocus * 0.55);
       const systemicPulse = heartFrozen ? 0 : getHeartBeat(t, 64 + systemicFocus * 22, 0.65 + systemicFocus * 0.6);
 
-      // 6. Render Octopus with Virtual Camera Transform
+      // Trigger procedural audio sounds
+      triggerProceduralAudio(t, branchialPulse, systemicPulse, heartFrozen);
+
+      // Render Subject
       ctx.save();
       ctx.translate(W / 2 + camX, H / 2 + camY);
       ctx.scale(camZoom, camZoom);
@@ -807,7 +1504,6 @@
       ctx.translate(octoX, octoY);
       ctx.rotate(octoRot);
 
-      // Jet propulsion bubbles blasting out of siphon [15 - 18.2s]
       if (t >= 15.0 && t < 18.5) {
         const bAlpha = smoothstep(15.0, 15.2, t) * (1 - smoothstep(18.0, 18.5, t));
         ctx.save();
@@ -840,8 +1536,7 @@
       });
       ctx.restore();
 
-      // 7. Kinetic Typography (Reels / TikTok Safe Zones)
-      // [0:00 - 0:03] Hook
+      // Kinetic Typography
       drawKineticText(
         [
           [{ text: 'ESTE ANIMAL TIENE' }],
@@ -850,7 +1545,6 @@
         310, 0.25, 3.0, t, 76
       );
 
-      // [0:03 - 0:10] Branchial hearts
       drawKineticText(
         [
           [{ text: '2 ', color: COLORS.branchial }, { text: 'bombean sangre' }],
@@ -859,7 +1553,6 @@
         1490, 3.15, 10.0, t, 64
       );
 
-      // [0:10 - 0:15] Systemic heart
       drawKineticText(
         [
           [{ text: 'El ' }, { text: '3.º', color: COLORS.systemic }, { text: ' la impulsa' }],
@@ -868,7 +1561,6 @@
         1490, 10.15, 15.0, t, 64
       );
 
-      // [0:15 - 0:18.2] Freeze & swim twist
       drawKineticText(
         [
           [{ text: 'Al nadar, este corazón' }],
@@ -877,7 +1569,6 @@
         310, 15.1, 18.25, t, 66
       );
 
-      // [0:18.2 - 20.0] Final impact
       drawKineticText(
         [
           [{ text: '¿Lo sabías?', color: '#FFFFFF' }]
@@ -885,7 +1576,7 @@
         1470, 18.3, 20.0, t, 96, true
       );
 
-      // Subtle editorial vignette
+      // Vignette
       const vig = ctx.createRadialGradient(W / 2, H / 2, W * 0.42, W / 2, H / 2, H * 0.68);
       vig.addColorStop(0, 'rgba(0,0,0,0)');
       vig.addColorStop(1, 'rgba(3, 8, 18, 0.45)');
@@ -893,16 +1584,49 @@
       ctx.fillRect(0, 0, W, H);
     }
 
-    // Playback & Export Loop
+    /* ==========================================================
+       PLAYBACK, SCRUBBING & UI SYNC
+       ========================================================== */
     let currentTime = 0;
     let isPlaying = false;
     let isRecording = false;
     let lastTimestamp = 0;
     let recStartTime = 0;
 
+    function getCurrentCueIndex(time) {
+      for (let i = 0; i < CUES.length; i++) {
+        if (time >= CUES[i].start && time < CUES[i].end) return i;
+      }
+      return CUES.length - 1;
+    }
+
     function updateUI() {
       scrubber.value = currentTime.toFixed(2);
-      timecodeEl.textContent = `${currentTime.toFixed(2).padStart(5, '0')}s / 20.00s`;
+      const secs = Math.floor(currentTime);
+      const tenths = Math.floor((currentTime % 1) * 10);
+      const timeStr = `00:${secs.toString().padStart(2, '0')}.${tenths} / 00:20.0`;
+      timecodeEl.textContent = timeStr;
+
+      const cueIdx = getCurrentCueIndex(currentTime);
+      scenePill.textContent = CUES[cueIdx].sceneName;
+
+      // Update active script card
+      scriptCards.forEach((card, idx) => {
+        if (idx === cueIdx) {
+          card.classList.add('active');
+        } else {
+          card.classList.remove('active');
+        }
+      });
+
+      // Update marker labels
+      markerSpans.forEach((span, idx) => {
+        if (idx === cueIdx) {
+          span.classList.add('active');
+        } else {
+          span.classList.remove('active');
+        }
+      });
     }
 
     function tick(now) {
@@ -925,49 +1649,149 @@
         const dt = (now - lastTimestamp) / 1000;
         lastTimestamp = now;
         currentTime += dt;
+
+        // Check if a new speech cue should be spoken
+        const cueIdx = getCurrentCueIndex(currentTime);
+        if (cueIdx !== lastSpokenCueIndex) {
+          lastSpokenCueIndex = cueIdx;
+          speakCue(cueIdx);
+        }
+
         if (currentTime >= DURATION) {
           currentTime = DURATION;
           isPlaying = false;
           playBtn.textContent = '▶ Reproducir';
+          stopSpeech();
         }
+
         renderFrame(currentTime);
         updateUI();
+
         if (isPlaying) requestAnimationFrame(tick);
       }
     }
 
+    // Play / Pause
     playBtn.addEventListener('click', () => {
+      initAudioContext();
       if (isRecording) return;
-      if (currentTime >= DURATION) currentTime = 0;
+
+      if (currentTime >= DURATION) {
+        currentTime = 0;
+        lastSpokenCueIndex = -1;
+      }
+
       isPlaying = !isPlaying;
       playBtn.textContent = isPlaying ? '❚❚ Pausar' : '▶ Reproducir';
+
       if (isPlaying) {
         lastTimestamp = performance.now();
+        const cueIdx = getCurrentCueIndex(currentTime);
+        lastSpokenCueIndex = cueIdx;
+        speakCue(cueIdx);
         requestAnimationFrame(tick);
+      } else {
+        stopSpeech();
       }
     });
 
+    // Restart
     restartBtn.addEventListener('click', () => {
+      initAudioContext();
       if (isRecording) return;
+      stopSpeech();
+
       currentTime = 0;
+      lastSpokenCueIndex = 0;
       isPlaying = true;
       playBtn.textContent = '❚❚ Pausar';
       lastTimestamp = performance.now();
+
       renderFrame(0);
       updateUI();
+      speakCue(0);
       requestAnimationFrame(tick);
     });
 
+    // Audio Toggle
+    audioToggleBtn.addEventListener('click', () => {
+      initAudioContext();
+      audioEnabled = !audioEnabled;
+      if (audioEnabled) {
+        audioToggleBtn.classList.add('active');
+        audioToggleBtn.textContent = '🔊 Audio On';
+        if (ambientGain && audioCtx) {
+          ambientGain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        }
+        if (isPlaying) {
+          const cueIdx = getCurrentCueIndex(currentTime);
+          speakCue(cueIdx);
+        }
+      } else {
+        audioToggleBtn.classList.remove('active');
+        audioToggleBtn.textContent = '🔇 Audio Off';
+        if (ambientGain && audioCtx) {
+          ambientGain.gain.setValueAtTime(0, audioCtx.currentTime);
+        }
+        stopSpeech();
+      }
+    });
+
+    // Scrubber
     scrubber.addEventListener('input', () => {
+      initAudioContext();
       if (isRecording) return;
+      stopSpeech();
       isPlaying = false;
       playBtn.textContent = '▶ Reproducir';
       currentTime = parseFloat(scrubber.value);
+      lastSpokenCueIndex = -1;
       renderFrame(currentTime);
       updateUI();
     });
 
-    // MediaRecorder export (1080x1920 @ 60fps WebM)
+    // Timeline Markers click
+    markerSpans.forEach(span => {
+      span.addEventListener('click', () => {
+        initAudioContext();
+        if (isRecording) return;
+        const targetTime = parseFloat(span.getAttribute('data-time'));
+        currentTime = targetTime;
+        const cueIdx = getCurrentCueIndex(currentTime);
+        lastSpokenCueIndex = cueIdx;
+        renderFrame(currentTime);
+        updateUI();
+        if (isPlaying || audioEnabled) {
+          speakCue(cueIdx);
+        }
+      });
+    });
+
+    // Script Cards click
+    scriptCards.forEach(card => {
+      card.addEventListener('click', () => {
+        initAudioContext();
+        if (isRecording) return;
+        const cueIdx = parseInt(card.getAttribute('data-cue'), 10);
+        currentTime = CUES[cueIdx].start;
+        lastSpokenCueIndex = cueIdx;
+        renderFrame(currentTime);
+        updateUI();
+        speakCue(cueIdx);
+      });
+    });
+
+    // Voice speed change
+    voiceRateSelect.addEventListener('change', () => {
+      if (isPlaying) {
+        const cueIdx = getCurrentCueIndex(currentTime);
+        speakCue(cueIdx);
+      }
+    });
+
+    /* ==========================================================
+       MEDIARECORDER VIDEO EXPORT (WITH PROCEDURAL AUDIO STREAM)
+       ========================================================== */
     let mediaRecorder = null;
     let recordedChunks = [];
 
@@ -980,19 +1804,21 @@
       restartBtn.disabled = false;
       exportBtn.disabled = false;
       scrubber.disabled = false;
+      exportBtn.innerHTML = '<span>📥 Exportar Vídeo</span>';
     }
 
     exportBtn.addEventListener('click', () => {
       if (isRecording) return;
+      initAudioContext();
 
       const mimeTypes = [
-        'video/webm;codecs=vp9',
-        'video/webm;codecs=vp8',
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
         'video/webm'
       ];
       const mimeType = mimeTypes.find(m => MediaRecorder.isTypeSupported(m));
       if (!mimeType) {
-        statusEl.textContent = 'Tu navegador no soporta MediaRecorder WebM. Prueba en Chrome o Edge.';
+        statusNote.textContent = 'Tu navegador no soporta WebM MediaRecorder.';
         return;
       }
 
@@ -1000,17 +1826,30 @@
       isRecording = true;
       currentTime = 0;
       recordedChunks = [];
+      lastSpokenCueIndex = 0;
 
       playBtn.disabled = true;
       restartBtn.disabled = true;
       exportBtn.disabled = true;
       scrubber.disabled = true;
-      statusEl.textContent = 'Grabando en tiempo real (20.00s a 1080×1920 · 60fps)... No minimices la pestaña.';
+      exportBtn.innerHTML = '<span>⏳ Grabando (20s)...</span>';
+      statusNote.textContent = 'Renderizando fotogramas y audio a 60 fps...';
 
-      const stream = canvas.captureStream(60);
-      mediaRecorder = new MediaRecorder(stream, {
+      // Capture canvas video stream
+      const canvasStream = canvas.captureStream(60);
+
+      // Combine video with procedural audio destination stream if available
+      let combinedStream = canvasStream;
+      if (audioDest && audioDest.stream && audioDest.stream.getAudioTracks().length > 0) {
+        combinedStream = new MediaStream([
+          ...canvasStream.getVideoTracks(),
+          ...audioDest.stream.getAudioTracks()
+        ]);
+      }
+
+      mediaRecorder = new MediaRecorder(combinedStream, {
         mimeType,
-        videoBitsPerSecond: 14000000
+        videoBitsPerSecond: 16000000
       });
 
       mediaRecorder.ondataavailable = e => {
@@ -1025,7 +1864,7 @@
         a.download = 'pulpo-3-corazones-9x16-60fps.webm';
         a.click();
         URL.revokeObjectURL(url);
-        statusEl.textContent = '¡Vídeo descargado! (.webm). Para pasarlo a .mp4 usa FFmpeg o CapCut.';
+        statusNote.textContent = '¡Vídeo descargado con éxito (.webm)!';
       };
 
       renderFrame(0);
@@ -1034,12 +1873,13 @@
       requestAnimationFrame(tick);
     });
 
-    // Wait for font before initial frame
+    // Initial render when fonts are ready
     document.fonts.ready.then(() => {
       renderFrame(0);
       updateUI();
     });
     renderFrame(0);
+    updateUI();
   </script>
 </body>
 </html>
